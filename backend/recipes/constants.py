@@ -1,0 +1,4 @@
+INGREDIENTS_PATH = 'data/ingredients.csv'
+NAME_MAX_LENGTH = 200
+STR_SYMBOL_LIMIT = 20
+VALID_CHARACTERS_USERNAME = r'^[\w.@+-]+'
