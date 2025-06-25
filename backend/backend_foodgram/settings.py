@@ -12,7 +12,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', get_random_secret_key())
 
 DEBUG = os.getenv('DEBUG', 'false').lower() == 'true'
 
-ALLOWED_HOSTS = ['158.160.77.249', 'dfdsfsdfhucehuewc.zapto.org']
+ALLOWED_HOSTS = ['127.0.0.1','localhost']
 
 # Application definition
 

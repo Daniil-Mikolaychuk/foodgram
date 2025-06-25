@@ -105,13 +105,6 @@ class SubscribeSerializer(serializers.ModelSerializer):
             raise ValidationError('Нельзя подписаться на самого себя!')
         return data
 
-    def to_representation(self, instance):
-        request = self.context.get("request")
-        return SubscriptionsSerializer(
-            instance.author,
-            context={'request': request}
-        ).data
-
 
 class SubscriptionsSerializer(CustomUserSerializer):
     """Сериализатор списка подписок."""
@@ -327,12 +320,6 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         self.create_ingredients(instance, ingredients)
         return instance
 
-    def to_representation(self, instance):
-        return RecipeReadSerializer(
-            instance,
-            context=self.context
-        ).data
-
 
 class RecipeShortSerializer(serializers.ModelSerializer):
     """Сериализатор для рецептов в подписках."""
@@ -361,11 +348,6 @@ class FavoriteSerializer(serializers.ModelSerializer):
             )
         ]
 
-    def to_representation(self, instance):
-        return RecipeShortSerializer(
-            instance.recipe,
-        ).data
-
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     """Сериализатор списка покупок."""
@@ -373,8 +355,3 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = '__all__'
-
-    def to_representation(self, instance):
-        return RecipeShortSerializer(
-            instance.recipe,
-        ).data
