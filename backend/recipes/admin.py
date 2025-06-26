@@ -1,17 +1,29 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from .models import (Favorite, Ingredient, Recipe, RecipeIngredient,
-                     ShoppingCart, Subscription, Tag, User)
+from recipes.models import (Favorite, Ingredient, Recipe, RecipeIngredient,
+                            ShoppingCart, Subscription, Tag, User)
 
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     """Регистрация модели пользователей."""
 
-    list_display = ('id', 'username', 'email')
+    list_display = (
+        'id', 'username', 'email',
+        'recipes_amount', 'subscribers_amount'
+    )
     search_fields = ('username', 'email')
     list_filter = ('username', 'email')
     list_display_links = ('username',)
+
+    @admin.display(description='Количество рецептов')
+    def recipes_amount(self, obj):
+        return obj.recipes.count()
+
+    @admin.display(description='Количество подписчиков')
+    def subscribers_amount(self, obj):
+        return obj.following.count()
 
 
 @admin.register(Subscription)
@@ -46,6 +58,7 @@ class RecipeIngredientInline(admin.TabularInline):
 
     model = RecipeIngredient
     extra = 1
+    min_num = 1
 
 
 class FavoritesInline(admin.TabularInline):
@@ -53,6 +66,7 @@ class FavoritesInline(admin.TabularInline):
 
     model = Favorite
     extra = 1
+    min_num = 1
 
 
 @admin.register(Recipe)

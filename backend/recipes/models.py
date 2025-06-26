@@ -1,9 +1,10 @@
 from django.contrib.auth.models import AbstractUser
-from django.core.validators import RegexValidator, validate_email
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.validators import validate_email
 from django.db import models
+from django.db.models import F, Q
 
-from recipes.constants import (NAME_MAX_LENGTH, STR_SYMBOL_LIMIT,
-                               VALID_CHARACTERS_USERNAME)
+from recipes.constants import NAME_MAX_LENGTH, STR_SYMBOL_LIMIT
 
 
 class User(AbstractUser):
@@ -19,13 +20,7 @@ class User(AbstractUser):
         max_length=NAME_MAX_LENGTH,
         unique=True,
         help_text="Не более 150 символов. Только буквы, цифры и @/./+/-/_.",
-        validators=[
-            RegexValidator(
-                regex=VALID_CHARACTERS_USERNAME,
-                message='Имя пользователя должно '
-                        'соответствовать шаблону.',
-                code='invalid_username')
-        ]
+        validators=[UnicodeUsernameValidator]
     )
     first_name = models.CharField('Имя', max_length=NAME_MAX_LENGTH)
     last_name = models.CharField('Фамилия', max_length=NAME_MAX_LENGTH)
@@ -34,7 +29,6 @@ class User(AbstractUser):
         null=True,
         blank=True,
         verbose_name='Аватар',
-        default=None
     )
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = (
@@ -70,6 +64,9 @@ class Subscription(models.Model):
         verbose_name_plural = 'Подписки'
         ordering = ('author',)
         constraints = [
+            models.CheckConstraint(
+                check=~Q(author=F('user')), name='self_sibscription'
+            ),
             models.UniqueConstraint(
                 fields=['user', 'author'], name='followers_unique'
             )
@@ -168,7 +165,7 @@ class Recipe(models.Model):
         verbose_name='Ингридиенты',
         through='RecipeIngredient'
     )
-    cooking_time = models.IntegerField(
+    cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления',
         null=False
     )
@@ -198,7 +195,7 @@ class RecipeIngredient(models.Model):
         verbose_name='Ингредиент рецепта',
         related_name='recipe_ingredients',
     )
-    amount = models.IntegerField(
+    amount = models.PositiveSmallIntegerField(
         'Количество'
     )
 
@@ -212,8 +209,8 @@ class RecipeIngredient(models.Model):
         return f'{self.ingredient.name} {self.recipe.name}'
 
 
-class Favorite(models.Model):
-    """Избранное."""
+class FavoriteShoppingCart(models.Model):
+    """Абстрактная модель. Для избранного и корзины."""
 
     user = models.ForeignKey(
         User,
@@ -222,15 +219,22 @@ class Favorite(models.Model):
     )
     recipe = models.ForeignKey(
         Recipe,
-        on_delete=models.CASCADE,
         verbose_name='Рецепт',
+        on_delete=models.CASCADE,
     )
 
     class Meta:
+        abstract = True
+        ordering = ('user',)
+
+
+class Favorite(FavoriteShoppingCart):
+    """Избранное."""
+
+    class Meta(FavoriteShoppingCart.Meta):
         verbose_name = 'Любимые рецепты'
         verbose_name_plural = 'Любимые рецепты'
         default_related_name = 'favorites'
-        ordering = ('user',)
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'recipe'],
@@ -242,25 +246,13 @@ class Favorite(models.Model):
         return f'{self.recipe.name[:STR_SYMBOL_LIMIT]} визбранном {self.user}'
 
 
-class ShoppingCart(models.Model):
+class ShoppingCart(FavoriteShoppingCart):
     """Модель списка рецептов."""
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Покупатель',
-    )
-    recipe = models.ForeignKey(
-        Recipe,
-        verbose_name='Рецепт',
-        on_delete=models.CASCADE,
-    )
-
-    class Meta:
+    class Meta(FavoriteShoppingCart.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Список покупок'
         default_related_name = 'shopping_cart'
-        ordering = ('user',)
 
     def __str__(self):
         return f'{self.recipe.name[:STR_SYMBOL_LIMIT]} в корзине у {self.user}'
